@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Send, Mail, MessageSquare, CheckCircle, Phone, MapPin, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import emailjs from '@emailjs/browser';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -18,21 +19,58 @@ const Contact = () => {
     feedbackType: 'general'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null); // Add form reference
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Feedback Sent!",
-      description: "Thank you for your feedback. We'll get back to you soon.",
-    });
-    
-    setFormData({ name: '', email: '', subject: '', message: '', feedbackType: 'general' });
-    setIsSubmitting(false);
+    console.log(`formData: ${JSON.stringify(formData)}, envs: ${JSON.stringify(import.meta.env)}`);
+
+    try {
+      if (!formRef.current) {
+        throw new Error("Form not found");
+      }
+
+      // await emailjs.sendForm(
+      //   import.meta.env.VITE_EMAILJS_SERVICE_ID,
+      //   import.meta.env.VITE_EMAILJS_TEMPLATE_ID, // MUST have template ID
+      //   formRef.current, // Use form reference instead of e.currentTarget
+      //   import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      // );
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          feedbackType: formData.feedbackType
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
+      toast({
+        title: "Feedback Sent!",
+        description: "Thank you for your feedback. We'll get back to you soon.",
+      });
+
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+        feedbackType: 'general'
+      });
+    } catch (error) {
+      console.error("Email sending email:", error);
+      toast({
+        title: "Sending Failed",
+        description: `Couldn't send your message: ${(error as Error).message}`,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -58,7 +96,7 @@ const Contact = () => {
             Get in Touch
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            Have questions, feedback, or need support? We'd love to hear from you! 
+            Have questions, feedback, or need support? We'd love to hear from you!
             Our team is here to help you succeed with the Mangi TG Bot SDK.
           </p>
         </div>
@@ -98,8 +136,8 @@ const Contact = () => {
               <p className="text-gray-600 dark:text-gray-300 mb-3">
                 Our support team typically responds within 24 hours to help you with any technical questions.
               </p>
-              <a 
-                href="mailto:aman.upadhyay@thewasserstoff.com" 
+              <a
+                href="mailto:aman.upadhyay@thewasserstoff.com"
                 className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
               >
                 aman.upadhyay@thewasserstoff.com
@@ -160,7 +198,8 @@ const Contact = () => {
               <Separator className="mt-4" />
             </CardHeader>
             <CardContent className="space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Add formRef here */}
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Label htmlFor="name" className="text-sm font-semibold">Name *</Label>
@@ -233,8 +272,8 @@ const Contact = () => {
                 </div>
 
                 <div className="pt-4">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isSubmitting}
                     className="w-full sm:w-auto h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
                   >
